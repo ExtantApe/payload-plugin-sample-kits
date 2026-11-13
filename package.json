@@ -1,0 +1,96 @@
+{
+  "name": "@extantape/payload-plugin-sample-kits",
+  "version": "0.1.0",
+  "description": "Sample Kits for Payload: track sample kits from stock to the keeper and back, with a custody trail for every status change, lot recalls that fail closed, a one-time secret to activate each kit, and prepaid shipping labels that are never bought twice.",
+  "homepage": "https://github.com/ExtantApe/payload-plugin-sample-kits#readme",
+  "bugs": {
+    "url": "https://github.com/ExtantApe/payload-plugin-sample-kits/issues"
+  },
+  "keywords": [
+    "payload",
+    "payload-plugin",
+    "payloadcms",
+    "ecommerce",
+    "multi-tenant",
+    "sample-kits",
+    "test-kits",
+    "chain-of-custody",
+    "lot-tracking",
+    "recall",
+    "kit-activation",
+    "laboratory",
+    "barcode"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ExtantApe/payload-plugin-sample-kits.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./pages": {
+      "types": "./dist/pages/index.d.ts",
+      "import": "./dist/pages/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "leak-check": "bash scripts/leak-check.sh",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test"
+  },
+  "peerDependencies": {
+    "payload": "^3.92.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@extantape/payload-plugin-scan": "0.1.0",
+    "@extantape/payload-plugin-wizards": "0.1.0",
+    "@payloadcms/db-mongodb": "3.92.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "graphql": "^16.14.2",
+    "jsdom": "^31.0.0",
+    "mongodb-memory-server": "^11.3.0",
+    "payload": "3.92.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}
