@@ -162,7 +162,7 @@ export async function createBatch(req: PayloadRequest, input: { lab: string; siz
     if (!Number.isInteger(size) || size < 1 || size > 500) throw new KitError('batchSize', 'A batch holds 1 to 500 kits.')
     const hub = await hubOf(req, o, site, input?.hub ?? null)
     // Numbers count up per site; the unique index on (site, number) stops two new batches taking one number.
-    const last = (await req.payload.find({ collection: 'lab-batches', where: scoped(o, site, { number: { exists: true } }), sort: '-number', limit: 1, ...ONE, req })).docs[0] as unknown as BatchDoc | undefined
+    const last = (await req.payload.find({ pagination: false, collection: 'lab-batches', where: scoped(o, site, { number: { exists: true } }), sort: '-number', limit: 1, ...ONE, req })).docs[0] as unknown as BatchDoc | undefined
     const number = (last?.number ?? 0) + 1
     return (await req.payload.create({
       collection: 'lab-batches',
@@ -376,7 +376,7 @@ export async function labPortal(req: PayloadRequest, input: { lab: string }): Pr
   if (!personOf(o, req)) throw new KitError('notLab', 'Only this lab’s portal users can do this.')
   const site = await siteOf(o, req)
   const lab = await labFor(req, o, site, input?.lab)
-  const batches = (await req.payload.find({ collection: 'lab-batches', where: scoped(o, site, { and: [{ lab: { equals: lab.id } }, { status: { in: ['shipped', 'received', 'complete'] } }] }), sort: '-number', limit: 50, ...ONE, req })).docs as unknown as BatchDoc[]
+  const batches = (await req.payload.find({ pagination: false, collection: 'lab-batches', where: scoped(o, site, { and: [{ lab: { equals: lab.id } }, { status: { in: ['shipped', 'received', 'complete'] } }] }), sort: '-number', limit: 50, ...ONE, req })).docs as unknown as BatchDoc[]
   const out: PortalBatch[] = []
   for (const b of batches) {
     const kits = await batchKits(req, o, site, b.id)

@@ -54,7 +54,7 @@ export function kitsHomePage(req: PayloadRequest): Promise<ServerResult<KitsHome
       toPack: await count(req, o.collections.orders, on({ 'kitFulfillment.status': { equals: 'to-pack' } })),
       packed: await count(req, o.collections.orders, on({ 'kitFulfillment.status': { equals: 'packed' } })),
     }
-    const lotDocs = (await req.payload.find({ collection: 'kit-lots', where: on({ id: { exists: true } }), sort: '-createdAt', limit: 100, ...ONE, req })).docs as unknown as Record<string, unknown>[]
+    const lotDocs = (await req.payload.find({ pagination: false, collection: 'kit-lots', where: on({ id: { exists: true } }), sort: '-createdAt', limit: 100, ...ONE, req })).docs as unknown as Record<string, unknown>[]
     const today = new Date().toISOString().slice(0, 10)
     const lots: KitsHomeData['lots'] = []
     for (const lot of lotDocs) {
@@ -114,7 +114,7 @@ export function scanLookup(req: PayloadRequest, input: { code: string }): Promis
     if (!code) throw new KitError('notACode', 'That isn’t a kit code. Kit codes are the 8 to 20 digits under the barcode.')
     const kit = await findKit(req, code, site)
     if (!kit) throw new KitError('unknownKit', `No kit ${code} on this site. Check the number, or receive its lot first.`, { code })
-    const lot = (await req.payload.find({ collection: 'kit-lots', where: { id: { equals: idOf(kit.lot) } }, limit: 1, ...ONE, req })).docs[0] as { lotNumber?: string } | undefined
+    const lot = (await req.payload.find({ pagination: false, collection: 'kit-lots', where: { id: { equals: idOf(kit.lot) } }, limit: 1, ...ONE, req })).docs[0] as { lotNumber?: string } | undefined
     const status = statusWords(o, kit.status)
     return { code, outcome: 'done', status: kit.status, lot: lot?.lotNumber ?? '', message: say(o, 'scan.found', 'Kit {code}: {status}, lot {lot}.', { code, status, lot: lot?.lotNumber ?? '' }) }
   })
@@ -176,7 +176,7 @@ export function packingPage(req: PayloadRequest): Promise<ServerResult<{ orders:
   return serve(req, async (o) => {
     await requireStaff(o, req)
     const site = await siteOf(o, req)
-    const docs = (await req.payload.find({ collection: o.collections.orders, where: scoped(o, site, { 'kitFulfillment.status': { in: ['to-pack', 'packed'] } }), sort: 'createdAt', limit: 200, ...ONE, req })).docs as unknown as KitOrder[]
+    const docs = (await req.payload.find({ pagination: false, collection: o.collections.orders, where: scoped(o, site, { 'kitFulfillment.status': { in: ['to-pack', 'packed'] } }), sort: 'createdAt', limit: 200, ...ONE, req })).docs as unknown as KitOrder[]
     const orders: PackingQueueRow[] = []
     for (const d of docs) {
       const f = d.kitFulfillment ?? {}
@@ -366,7 +366,7 @@ export function batchesPage(req: PayloadRequest): Promise<ServerResult<{ batches
     const site = await siteOf(o, req)
     const labs = (await req.payload.find({ collection: 'labs', where: scoped(o, site, { active: { not_equals: false } }), sort: 'name', ...READ, req })).docs as unknown as { id: string; name: string; batchSizes?: number[] | null }[]
     const names = new Map(labs.map((l) => [String(l.id), String(l.name)]))
-    const docs = (await req.payload.find({ collection: 'lab-batches', where: scoped(o, site, { id: { exists: true } }), sort: '-number', limit: 50, ...ONE, req })).docs as unknown as BatchDoc[]
+    const docs = (await req.payload.find({ pagination: false, collection: 'lab-batches', where: scoped(o, site, { id: { exists: true } }), sort: '-number', limit: 50, ...ONE, req })).docs as unknown as BatchDoc[]
     const batches: BatchRow[] = []
     for (const b of docs)
       batches.push({
@@ -389,9 +389,9 @@ export function batchPage(req: PayloadRequest, input: { batch: string }): Promis
     await requireStaff(o, req)
     const site = await siteOf(o, req)
     const id = text(input?.batch, 64)
-    const b = /^[A-Za-z0-9_-]{1,64}$/.test(id) ? ((await req.payload.find({ collection: 'lab-batches', where: scoped(o, site, { id: { equals: id } }), limit: 1, ...ONE, req }).catch(() => ({ docs: [] }))).docs[0] as unknown as BatchDoc | undefined) : undefined
+    const b = /^[A-Za-z0-9_-]{1,64}$/.test(id) ? ((await req.payload.find({ pagination: false, collection: 'lab-batches', where: scoped(o, site, { id: { equals: id } }), limit: 1, ...ONE, req }).catch(() => ({ docs: [] }))).docs[0] as unknown as BatchDoc | undefined) : undefined
     if (!b) throw new KitError('noBatch', 'That batch isn’t here. Go back to the batch list and choose it again.')
-    const lab = (await req.payload.find({ collection: 'labs', where: { id: { equals: idOf(b.lab) } }, limit: 1, ...ONE, req })).docs[0] as { name?: string; batchSizes?: number[] | null } | undefined
+    const lab = (await req.payload.find({ pagination: false, collection: 'labs', where: { id: { equals: idOf(b.lab) } }, limit: 1, ...ONE, req })).docs[0] as { name?: string; batchSizes?: number[] | null } | undefined
     const kits = (await req.payload.find({ collection: 'kits', where: scoped(o, site, { labBatch: { equals: b.id } }), sort: 'code', ...READ, req })).docs as unknown as KitDoc[]
     return {
       id: String(b.id),

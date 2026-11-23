@@ -108,7 +108,7 @@ export function myTestsPage(req: PayloadRequest): Promise<ServerResult<MyTestsDa
     const site = await siteOf(o, req)
     const mine = String(user.id)
     const buyerWhere: Where = o.orders?.buyerWhere ? o.orders.buyerWhere(mine) : { customer: { equals: mine } }
-    const found = (await req.payload.find({ collection: o.collections.orders, where: scoped(o, site, { and: [buyerWhere, { 'kitFulfillment.status': { exists: true } }] }), sort: '-createdAt', limit: 100, ...ONE, req })).docs as unknown as KitOrder[]
+    const found = (await req.payload.find({ pagination: false, collection: o.collections.orders, where: scoped(o, site, { and: [buyerWhere, { 'kitFulfillment.status': { exists: true } }] }), sort: '-createdAt', limit: 100, ...ONE, req })).docs as unknown as KitOrder[]
     // Checked again by the buyer rule itself, so a query that's too loose can't show someone else's order.
     const orders = found.filter((d) => buyerOf(o, d) === mine && d.kitLines?.length)
     const ids = orders.map((d) => d.id)
@@ -162,7 +162,7 @@ export function myKitPage(req: PayloadRequest, input: { code: string }): Promise
     const row = await keeperKit(o, req, kit, role)
     const buyer = role !== 'keeper'
     const keeper = role !== 'buyer'
-    const order = buyer && idOf(kit.order) ? ((await req.payload.find({ collection: o.collections.orders, where: scoped(o, site, { id: { equals: idOf(kit.order) } }), limit: 1, ...ONE, req })).docs[0] as unknown as KitOrder | undefined) : undefined
+    const order = buyer && idOf(kit.order) ? ((await req.payload.find({ pagination: false, collection: o.collections.orders, where: scoped(o, site, { id: { equals: idOf(kit.order) } }), limit: 1, ...ONE, req })).docs[0] as unknown as KitOrder | undefined) : undefined
     const word = (s: 'ordered' | 'shipped' | 'activated' | 'sampled') => say(o, `steps.${s}`, { ordered: 'Ordered', shipped: 'Shipped', activated: 'Activated', sampled: 'Sampled' }[s])
     const dates: MyKitData['dates'] = []
     if (order?.createdAt) dates.push({ step: 'ordered', label: word('ordered'), at: String(order.createdAt) })
