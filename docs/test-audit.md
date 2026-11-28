@@ -2,6 +2,17 @@
 
 Kept by this repo's maintainers: after each feature or fix, and at least every 14 days while it changes. Newest first.
 
+## 2026-11-27: who sets the kit fields on the site's orders
+
+257 tests. `test/orderFields.test.ts` (13 new) puts a value in every field under `kitFulfillment`, and checks that its two lists (set by staff, set by server code only) name all of them:
+- **Not kit staff:** create and duplicate, with and without values of their own, through the Local API and REST. No kit lines are stored, and `kitFulfillment` holds only the default status. The site's own fields still save and copy.
+- **Kit staff and admins:** create and duplicate keep the lines and the staff fields, and none of the server-only ones. An update can't add the agreed words.
+- **Server code:** create records every field, and duplicate copies the agreed words.
+
+Mutation check: with the new tests run against the old field rules, 10 of 13 failed. With only the group-level rules and no rule on the fields inside, the 5 duplicate tests failed.
+
+Gaps skipped: GraphQL (same field rules, not run here) and the admin panel in a browser.
+
 ## 2026-11-13: who a notice names, and what notify answered
 
 244 tests. From the security read before the first public push:
