@@ -13,19 +13,31 @@ const never = () => false
 const readOnlyField = { create: never, update: never }
 const hasKits = (d: { kitLines?: unknown[] } | undefined) => Boolean(d?.kitLines?.length)
 
+/**
+ * Gives a field, and every field inside it, a create rule: the field's own if it has one, else the one it sits in,
+ * and `never` all the way down. Each field inside a group needs its own: Payload checks them one by one, and on
+ * duplicate fills a field from the source document unless that field's rule says no.
+ */
+function createRule(field: Field, outer: FieldAccess): Field {
+  const f = field as Field & { access?: { create?: FieldAccess }; fields?: Field[] }
+  const create = outer === never ? never : (f.access?.create ?? outer)
+  return { ...f, access: { ...f.access, create }, ...(f.fields && { fields: f.fields.map((x) => createRule(x, create)) }) } as Field
+}
+
 /** Order statuses. Stored values keep the site's spelling (`cancelled`); labels use US spelling. */
 export const KIT_FULFILLMENT_STATUSES = ['pre-order', 'to-pack', 'packed', 'shipped', 'cancelled'] as const
 export type KitFulfillmentStatus = (typeof KIT_FULFILLMENT_STATUSES)[number]
 
 export function orderFields(o: ResolvedOptions): Field[] {
   /**
-   * The order's own read and write access stay the site's. On top (security read of fee0a58, 2026-11-10): the kit
-   * lines and fulfillment change only through kit staff (the plugin's own writes override access), so a buyer allowed
-   * to edit their order can't mark it shipped or change what it's for; and the purchase records (label costs and
-   * references, the labels run), the notice bookkeeping and which staff member decided are for kit staff only.
+   * The order's own access stays the site's. On top: only kit staff and server code that overrides access set or
+   * change the kit lines and fulfillment, when an order is created or duplicated as well as later. The buyer's agreed
+   * words, and the other records marked `readOnlyField`, come only from server code that overrides access. The
+   * purchase records (label costs and references, the labels run), the notice bookkeeping and which staff member
+   * decided are read by kit staff only.
    */
   const staffOnly: FieldAccess = ({ req }) => isStaff(o, req)
-  const staffWrite = { update: staffOnly }
+  const staffWrite = { create: staffOnly, update: staffOnly }
   const staffRead = { read: staffOnly }
   const kinds = o.subjects.lineKinds ?? (o.subjects.kinds ?? []).map((k) => ({ label: `For: ${k}`, value: k }))
   const kitLines: Field = {
@@ -68,7 +80,7 @@ export function orderFields(o: ResolvedOptions): Field[] {
         // What the buyer ticked before paying, word for word (the pre-order terms).
         name: 'agreed',
         type: 'group',
-        access: { update: never },
+        access: readOnlyField,
         admin: { readOnly: true, condition: (d) => Boolean(d?.kitFulfillment?.agreed?.text), description: 'What the buyer ticked before paying, word for word.' },
         fields: [
           { name: 'text', type: 'textarea' },
@@ -254,7 +266,7 @@ export function orderFields(o: ResolvedOptions): Field[] {
       },
     ],
   }
-  return [kitLines, kitFulfillment]
+  return [kitLines, createRule(kitFulfillment, staffOnly)]
 }
 
 /** The kit product's fields: a kit is sold by quantity, priced by tiers, with flat shipping by order size. */

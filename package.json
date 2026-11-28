@@ -1,6 +1,6 @@
 {
   "name": "@extantape/payload-plugin-sample-kits",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sample Kits for Payload: track sample kits from stock to the keeper and back, with a custody trail for every status change, lot recalls that fail closed, a one-time secret to activate each kit, and prepaid shipping labels that are never bought twice.",
   "homepage": "https://github.com/ExtantApe/payload-plugin-sample-kits#readme",
   "bugs": {
