@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-11-28)
+
+A minor version, because orders created by people who aren't kit staff now lose their kit fields (below). A `^0.1.0` range won't pick it up by itself.
 
 **Upgrade note: who sets the kit fields on your orders.** `kitLines` and `kitFulfillment` are now set only by kit staff, admins and server code with `overrideAccess: true`, when an order is created or duplicated as well as on update. What changes for your site:
 
@@ -10,7 +12,13 @@
 - A duplicate made by server code with `overrideAccess: true` still copies every field, the agreed words included.
 - Orders already saved aren't changed. If people who aren't kit staff can create orders on your site, check existing orders' kit fields against what was bought and paid for.
 
-No schema, option or type changes. Tested: 257 tests (13 new in `test/orderFields.test.ts`: create and duplicate through the Local API and REST by someone who isn't kit staff, by kit staff and an admin, and by server code) on Payload 3.92 with in-memory MongoDB. The plugin's own order writes (replacements, pre-orders, the seed story) pass their existing tests. Not tested: GraphQL, Postgres, the admin panel in a browser, or a real site's checkout.
+Finds that can run inside a transaction no longer ask for a page count. On MongoDB a paged find sends its count at the same moment, and when it was the first query in a transaction the two could race and fail. Lists that page for people are unchanged. Tested with the full suite; the race itself isn't reproduced here.
+
+No new collection, field, index, option or type, so there's nothing to migrate. Tested: 257 tests (13 new in `test/orderFields.test.ts`: create and duplicate through the Local API and REST by someone who isn't kit staff, by kit staff and an admin, and by server code) on Payload 3.92 with in-memory MongoDB. The plugin's own order writes (replacements, pre-orders, the seed story) pass their existing tests. Not tested: GraphQL, Postgres, the admin panel in a browser, or a real site's checkout.
+
+## 0.1.0 (2026-11-14)
+
+The first version on npm, published from commit b14d96b.
 
 Notices name only what each person should see. A keeper's notice (a return parcel's problem, `kit-arrived`) has `to.order` null, since a keeper may be a minor who got the kit as a gift; the row keeps the order. A staff notice carries the order's site as `to.site`, so a site with many tenants tells only that site's kit staff. A keeper who is the order's own buyer, decided when the notice is planned and stored as `toBuyer` on `kit-notices` (a new field), keeps the order; that includes a return parcel nobody activated, which goes to the buyer. With `scope`, a staff notice with no site is never sent and is recorded as `gave-up` with delivery `noSite`. A `notify` answer the plugin doesn't know is stored as `unknown`. Tested: 244 tests (3 new in `test/shipping.test.ts`, 4 updated), with mutation checks of 10 and then 9 changes.
 
@@ -23,8 +31,6 @@ Shipment notices, finished. Tracker updates from Shipping's webhook now tell the
 Every notice is recorded in a new collection, `kit-notices`, in the same transaction as the update, under a key (parcel, notice, person) that a unique partial index (`sampleKits_notice_key`) lets exist once, so a repeat or two copies at once send one notice. It's sent after the commit, claimed first so two senders never both send it. A failed send is tried again on the parcel's next update, the kit's next check-in scan, or `retryKitNotices` (new, server only, daily), up to five tries, then `gave-up` for staff. `NOTICE_INDEX`, `MAX_NOTICE_TRIES` and the `NoticeAudience` and `NoticeStatus` types are exported.
 
 Tested: 236 tests (10 new) on Payload 3.92 with in-memory MongoDB, with tracker updates shaped as Shipping's webhook hands them over: each status once, repeats and webhook retries, three copies at once, several senders at once, a failed send retried by the next update and the daily run, five failures, a crashed send, a gift's keeper on the return leg, an unknown tracking number, and who reads the record. Mutation check in `docs/test-audit.md`. Not tested: Shipping's real webhook endpoint (not a dependency here), a real carrier or the site's own `notify`.
-
-## 0.1.0 (unreleased)
 
 Security read of fee0a58 (2026-11-10). A gift's buyer and keeper no longer see each other through REST, GraphQL or the Local API: field read access on kits splits the buyer's side (`buyer`, `order`, `orderLine`, `identifierLabel`, `secretIssuedAt`, and the subject fields in the new `subjects.buyerFields`) from the keeper's (`activatedBy`, `activatedAt`, `sampledAt`, the other subject fields), `notes` is staff-only, and overrides can only narrow field access. On orders, `kitLines` and `kitFulfillment` change only through kit staff, and label purchases, the labels run, notice bookkeeping and who decided read for kit staff only. Activation claims the kit atomically, so two at once give one keeper, with or without transactions. A refund that throws anything but a clear refusal (`refused: true`, `refundRefusal()`), or answers without an id, is recorded `unknown` and counts as paid back until a site admin settles it (`settleRefund`). Logs keep only the error's name. A new `site` option gives the slip's links and the lab notice's name and portal, never page input. Lost races answer `busy` in plain words. Start-up refuses a Payload secret under 16 characters. The README states the scope contract.
 
